@@ -1,4 +1,5 @@
-use futures::Async::{Ready, NotReady};
+// use futures::Async::{Ready, NotReady};
+use futures::Future;
 
 use crate::msg::*;
 use crate::service::{TSOClient, TransactionClient};
@@ -37,12 +38,9 @@ impl Client {
 
     /// Gets a timestamp from a TSO.
     pub fn get_timestamp(&self) -> Result<u64> {
-        let reply = self.tso_client.get_timestamp(&TimestampRequest{}).poll()?;
+        let reply = self.tso_client.get_timestamp(&TimestampRequest{}).wait()?;
         println!("{:?}", reply);
-        match reply {
-            Ready(resp) => Ok(resp.timestamp),
-            NotReady => unimplemented!(),
-        }
+        Ok(reply.timestamp)
     }
 
     /// Begins a new transaction.
