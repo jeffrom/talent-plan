@@ -50,12 +50,22 @@ impl Client {
                     if times + 1 >= RETRY_TIMES as u64 {
                         return Err(err);
                     }
+                    let backoff = self::Client::backoff(times);
                     times = times + 1;
-                    thread::sleep(Duration::from_millis(BACKOFF_TIME_MS * (times + 1)));
+                    thread::sleep(Duration::from_millis(backoff));
                     continue;
                 }
             };
         }
+    }
+
+    fn backoff(attempt: u64) -> u64 {
+        let mut x: u64 = BACKOFF_TIME_MS;
+        for n in 0..attempt {
+            x = x * 2
+        }
+
+        x
     }
 
     /// Begins a new transaction.
