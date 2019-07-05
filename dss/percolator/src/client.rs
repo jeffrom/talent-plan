@@ -1,9 +1,11 @@
 // use futures::Async::{Ready, NotReady};
 use futures::Future;
+use std::thread;
+use std::time::Duration;
 
 use crate::msg::*;
-use crate::service::{TSOClient, TransactionClient};
 use crate::service::timestamp;
+use crate::service::{TSOClient, TransactionClient};
 
 use labrpc::*;
 
@@ -38,20 +40,22 @@ impl Client {
 
     /// Gets a timestamp from a TSO.
     pub fn get_timestamp(&self) -> Result<u64> {
+        let mut times: u64 = 0;
+
         loop {
-            let reply = self.tso_client.get_timestamp(&TimestampRequest{}).wait();
+            let reply = self.tso_client.get_timestamp(&TimestampRequest {}).wait();
             match reply {
                 Ok(resp) => return Ok(resp.timestamp),
                 Err(err) => {
-                    match err {
-                        Error::Timeout => return Err(err),
-                        _ => continue,
+                    if times + 1 >= RETRY_TIMES as u64 {
+                        return Err(err);
                     }
-                },
+                    times = times + 1;
+                    thread::sleep(Duration::from_millis(BACKOFF_TIME_MS * (times + 1)));
+                    continue;
+                }
             };
         }
-        // println!("boop: {:?}", reply);
-        // Ok(reply.timestamp)
     }
 
     /// Begins a new transaction.
