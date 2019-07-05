@@ -38,9 +38,20 @@ impl Client {
 
     /// Gets a timestamp from a TSO.
     pub fn get_timestamp(&self) -> Result<u64> {
-        let reply = self.tso_client.get_timestamp(&TimestampRequest{}).wait()?;
-        println!("{:?}", reply);
-        Ok(reply.timestamp)
+        loop {
+            let reply = self.tso_client.get_timestamp(&TimestampRequest{}).wait();
+            match reply {
+                Ok(resp) => return Ok(resp.timestamp),
+                Err(err) => {
+                    match err {
+                        Error::Timeout => return Err(err),
+                        _ => continue,
+                    }
+                },
+            };
+        }
+        // println!("boop: {:?}", reply);
+        // Ok(reply.timestamp)
     }
 
     /// Begins a new transaction.
